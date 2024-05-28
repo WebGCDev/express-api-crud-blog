@@ -4,9 +4,17 @@ const app = express();
 const port = 9015; //Porta Ascolto
 const postRouter = require('./routers/posts'); //router per le rotte dei post
 const posts = require('./db/postsDb.json'); //file JSON contenente i post
+const errorHandler = require('./middlewares/errorHandler.js');
+const errorHandlerMiddleware = require('./middlewares/errorHandlerMiddleware.js');
+const requestLoggingMiddleware = require('./middlewares/requestLoggingMiddleware.js');
+const morgan = require('morgan');
 
 app.use(express.static('public'));
 app.use(express.json());
+app.use(errorHandler);
+app.use(errorHandlerMiddleware);
+
+app.use(requestLoggingMiddleware);
 
 //Definizione delle rotte
 app.get('/', (req, res) => {
