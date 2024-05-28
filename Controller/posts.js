@@ -2,6 +2,10 @@
 const posts = require('../db/postsDb.json');
 //Gestione dei percorsi
 const path = require('path');
+//modulo per la gestione dei file
+const fs = require('fs');
+//modulo uuid per generare identificatori univoci
+const { v4: uuidv4 } = require('uuid');
 
 const index = (req, res) => {
   //stringa HTML che conterrà una lista di post
@@ -20,9 +24,14 @@ const index = (req, res) => {
 const show = (req, res) => {
   // post nel file JSON che corrisponde allo slug passato come parametro nella richiesta
   const post = posts.find((p) => p.slug === req.params.slug);
+  //Se il post è trovato, crea una stringa HTML
   if (post) {
+    //URL completo per l'immagine del post
     const imageUrl = `${req.protocol}://${req.get('host')}/${post.image}`;
-    console.log('Image URL:', imageUrl);
+    //URL completo per il download dell'immagine del post
+    const downloadUrl = `${req.protocol}://${req.get('host')}/posts/${
+      post.slug
+    }/download`;
     let html = '<div>';
     //Variabile per contenere HTML
     html += `<div>
@@ -31,6 +40,8 @@ const show = (req, res) => {
               <h2>${post.title}</h2>
               <p>${post.content}</p>
                <p><strong>IMAGE URL:</strong> <a href="${imageUrl}" target="_blank">${imageUrl}</a></p>
+               <p><strong>Download Image URL:</strong> <a href="${downloadUrl}" target="_blank">${downloadUrl}</a></p>
+            </div>
             </div>
 `;
     html += '</div>';
@@ -79,5 +90,49 @@ const downloadImage = (req, res) => {
   }
 };
 
+const store = (req, res) => {
+  const { title, content, image } = req.body; // Assumendo che l'immagine sia un URL o percorso
+
+  if (!title || !content || !image) {
+    return res.status(400).json({ error: 'Missing required fields' });
+  }
+  // nuovo post con ID univoco, titolo, contenuto, immagine e slug
+  const newPost = {
+    id: uuidv4(),
+    title,
+    content,
+    image,
+    slug: title
+      .toLowerCase() //tutto in lettere minuscole
+      .replace(/ /g, '-') //Sostituisce spazi con trattini, e tutti gli spazi nel titolo non solo il primo
+      .replace(/[^\w-]+/g, ''), //evito i caratteri che non sono lettere numeri trattini bassi o trattini
+  };
+  // Aggiunge Post all'Array di post
+  posts.push(newPost);
+
+  // Scrivi i nuovi dati nel file JSON (simulazione di un database)
+  fs.writeFile(
+    path.join(__dirname, '../db/postsDb.json'),
+    JSON.stringify(posts, null, 2),
+    (err) => {
+      if (err) {
+        return res.status(500).json({ error: 'Failed to save post' });
+      }
+
+      res.format({
+        html: () => {
+          res.redirect(`/posts/${newPost.slug}`);
+        },
+        json: () => {
+          res.status(201).json(newPost);
+        },
+        default: () => {
+          res.status(406).send('Not Acceptable');
+        },
+      });
+    }
+  );
+};
+
 // Le funzioni devono essere esportate per renderle disponibili in altre parti dell'app
-module.exports = { index, show, create, downloadImage };
+module.exports = { index, show, create, downloadImage, store };

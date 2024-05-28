@@ -11,7 +11,10 @@ router.get('/', postController.index);
 router.get('/create', postController.create);
 //chiama la funzione show del controller dei post
 router.get('/:slug', postController.show);
+//rotta per scaricare immagine del singolo post
 router.get('/:slug/download', postController.downloadImage);
+//rotta per creare nuovo post
+router.post('/', express.urlencoded({ extended: true }), postController.store);
 
 // esportiamo il router per renderlo disponibile in altre parti dell'app
 module.exports = router;
