@@ -134,5 +134,50 @@ const store = (req, res) => {
   );
 };
 
+// Funzione per eliminare un post
+const destroy = (req, res) => {
+  //slug del post dalla richiesta
+  const { slug } = req.params;
+  //Trova l'indice del post nell'array dei post
+  const postIndex = posts.findIndex((p) => p.slug === slug);
+  //post non è stato trovato, restituisci un errore 404
+  if (postIndex === -1) {
+    return res.status(404).json({ error: 'Il tuo post non è stato trovato!' });
+  }
+  //Rimuovi il post dall'array e ottieni il post rimosso
+  const [deletedPost] = posts.splice(postIndex, 1);
+  //dati aggiornati nel file JSON
+  fs.writeFile(
+    path.join(__dirname, '../db/postsDb.json'),
+    JSON.stringify(posts, null, 2),
+    (err) => {
+      if (err) {
+        return res.status(500).json({ error: 'Failed to delete post' });
+      }
+
+      res.format({
+        //risposta Html, reindirizza alla pagina degli elenchi dei post
+        html: () => {
+          res.redirect('/posts');
+        },
+        //testo semplice, invia un messaggio di conferma
+        text: () => {
+          res.send('Post eliminato');
+        },
+        //richiesta accetta JSON, restituisce un messaggio di conferma insieme al post eliminato
+        json: () => {
+          res
+            .status(200)
+            .json({ message: 'Post eliminato', post: deletedPost });
+        },
+        //tipo di richiesta non è accettato, restituisci un errore 406
+        default: () => {
+          res.status(406).send('Not Acceptable');
+        },
+      });
+    }
+  );
+};
+
 // Le funzioni devono essere esportate per renderle disponibili in altre parti dell'app
-module.exports = { index, show, create, downloadImage, store };
+module.exports = { index, show, create, downloadImage, store, destroy };
